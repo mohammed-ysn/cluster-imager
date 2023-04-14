@@ -1,23 +1,20 @@
 # Variables
-GO=go
+GO_CMD=go
+GO_BUILD_CMD=$(GO_CMD) build
+GO_TEST_CMD=$(GO_CMD) test
 BINARY_NAME=cluster-imager
 BUILD_DIR=build
 
 # Targets
-all: test build
+all: build
+
 build:
-	$(GO) build -o $(BUILD_DIR)/$(BINARY_NAME) -v .
+	$(GO_BUILD_CMD) -o $(BUILD_DIR)/$(BINARY_NAME) main.go
+
 test:
-	$(GO) test -v ./...
+	$(GO_TEST_CMD) -v ./...
+
 clean:
-	$(GO) clean
 	rm -rf $(BUILD_DIR)
-run: build
-	./$(BUILD_DIR)/$(BINARY_NAME)
 
-# Install dependencies
-deps:
-	$(GO) get -v ./...
-
-# PHONY targets
-.PHONY: all build test clean run deps
+.PHONY: all build test clean
