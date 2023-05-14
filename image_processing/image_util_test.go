@@ -1,4 +1,4 @@
-package main
+package image_processing
 
 import (
 	"image"

@@ -1,4 +1,4 @@
-package main
+package image_processing
 
 import (
 	"image"
@@ -10,7 +10,7 @@ import (
 func TestCropImageDimensionsWithZeroPosition(t *testing.T) {
 	testImg := image.NewRGBA(image.Rect(0, 0, 100, 100))
 
-	croppedImg := cropImage(testImg, 0, 0, 50, 50)
+	croppedImg := CropImage(testImg, 0, 0, 50, 50)
 
 	// check cropped image dimensions
 	if croppedImg.Bounds().Dx() != 50 || croppedImg.Bounds().Dy() != 50 {
@@ -30,7 +30,7 @@ func TestCropImageWithNonZeroPosition(t *testing.T) {
 	draw.Draw(testImg, testImg.Bounds(), &image.Uniform{color.White}, image.Point{}, draw.Src)
 	draw.Draw(testImg, image.Rect(cropStartX, cropStartY, cropStartX+afterX, cropStartY+afterY), &image.Uniform{color.Black}, image.Point{}, draw.Src)
 
-	croppedImg := cropImage(testImg, cropStartX, cropStartY, afterX, afterY)
+	croppedImg := CropImage(testImg, cropStartX, cropStartY, afterX, afterY)
 
 	if croppedImg.Bounds().Dx() != afterX || croppedImg.Bounds().Dy() != afterY {
 		t.Errorf("Cropped image has unexpected dimensions: %dx%d", croppedImg.Bounds().Dx(), croppedImg.Bounds().Dy())
@@ -50,7 +50,7 @@ func TestCropImageWithNonZeroPosition(t *testing.T) {
 func TestCropImageWithWidthGreaterThanImageWidth(t *testing.T) {
 	testImg := image.NewRGBA(image.Rect(0, 0, 100, 100))
 
-	croppedImg := cropImage(testImg, 0, 0, 150, 50)
+	croppedImg := CropImage(testImg, 0, 0, 150, 50)
 
 	if croppedImg.Bounds().Dx() != 100 || croppedImg.Bounds().Dy() != 50 {
 		t.Errorf("Expected dimensions: 100x50. Actual dimensions: %dx%d", croppedImg.Bounds().Dx(), croppedImg.Bounds().Dy())
@@ -60,7 +60,7 @@ func TestCropImageWithWidthGreaterThanImageWidth(t *testing.T) {
 func TestCropImageWithHeightGreaterThanImageHeight(t *testing.T) {
 	testImg := image.NewRGBA(image.Rect(0, 0, 100, 100))
 
-	croppedImg := cropImage(testImg, 0, 0, 50, 150)
+	croppedImg := CropImage(testImg, 0, 0, 50, 150)
 
 	if croppedImg.Bounds().Dx() != 50 || croppedImg.Bounds().Dy() != 100 {
 		t.Errorf("Expected dimensions: 50x100. Actual dimensions: %dx%d", croppedImg.Bounds().Dx(), croppedImg.Bounds().Dy())
