@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/mohammed-ysn/cluster-imager/image_processing"
 	"image"
 	"image/jpeg"
 	"log"
 	"net/http"
 	"strconv"
+	"time"
+
+	"github.com/mohammed-ysn/cluster-imager/image_processing"
 )
 
 func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(image.Image) image.Image) {
@@ -113,10 +115,17 @@ func resizeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+	server := &http.Server{
+		Addr:           ":8080",
+		Handler:        nil,
+		ReadTimeout:    5 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1 MB max header size
+	}
 	http.HandleFunc("/crop", cropHandler)
 	http.HandleFunc("/resize", resizeHandler)
 	fmt.Println("Server started on port 8080")
-	err := http.ListenAndServe(":8080", nil)
+	err := server.ListenAndServe()
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
