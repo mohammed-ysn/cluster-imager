@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-func imageHandler(w http.ResponseWriter, r *http.Request) {
+func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(image.Image) image.Image) {
 	if r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -25,6 +25,7 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	// get the uploaded file
 	file, _, err := r.FormFile("image")
 	if err != nil {
@@ -40,9 +41,8 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// call image processing functions
-	// TODO: remove hard-coded values
-	processedImage := image_processing.CropImage(inputImg, 100, 50, 60, 60)
+	// call image processing function
+	processedImage := processingFunc(inputImg)
 
 	// encode the processed image as JPEG
 	var buf bytes.Buffer
@@ -64,8 +64,23 @@ func imageHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func cropHandler(w http.ResponseWriter, r *http.Request) {
+	processImage(w, r, func(inputImg image.Image) image.Image {
+		// TODO: remove hard-coded values
+		return image_processing.CropImage(inputImg, 100, 50, 60, 60)
+	})
+}
+
+func resizeHandler(w http.ResponseWriter, r *http.Request) {
+	processImage(w, r, func(inputImg image.Image) image.Image {
+		// TODO: remove hard-coded values
+		return image_processing.ResizeImage(inputImg, 200, 150)
+	})
+}
+
 func main() {
-	http.HandleFunc("/image", imageHandler)
+	http.HandleFunc("/crop", cropHandler)
+	http.HandleFunc("/resize", resizeHandler)
 	fmt.Println("Server started on port 8080")
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
