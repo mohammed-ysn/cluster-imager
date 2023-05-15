@@ -65,16 +65,50 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 }
 
 func cropHandler(w http.ResponseWriter, r *http.Request) {
+	x, err := strconv.Atoi(r.URL.Query().Get("x"))
+	if err != nil {
+		http.Error(w, "Invalid value for 'x'", http.StatusBadRequest)
+		return
+	}
+
+	y, err := strconv.Atoi(r.URL.Query().Get("y"))
+	if err != nil {
+		http.Error(w, "Invalid value for 'y'", http.StatusBadRequest)
+		return
+	}
+
+	width, err := strconv.Atoi(r.URL.Query().Get("width"))
+	if err != nil {
+		http.Error(w, "Invalid value for 'width'", http.StatusBadRequest)
+		return
+	}
+
+	height, err := strconv.Atoi(r.URL.Query().Get("height"))
+	if err != nil {
+		http.Error(w, "Invalid value for 'height'", http.StatusBadRequest)
+		return
+	}
+
 	processImage(w, r, func(inputImg image.Image) image.Image {
-		// TODO: remove hard-coded values
-		return image_processing.CropImage(inputImg, 100, 50, 60, 60)
+		return image_processing.CropImage(inputImg, x, y, width, height)
 	})
 }
 
 func resizeHandler(w http.ResponseWriter, r *http.Request) {
+	width, err := strconv.Atoi(r.URL.Query().Get("width"))
+	if err != nil {
+		http.Error(w, "Invalid value for 'width'", http.StatusBadRequest)
+		return
+	}
+
+	height, err := strconv.Atoi(r.URL.Query().Get("height"))
+	if err != nil {
+		http.Error(w, "Invalid value for 'height'", http.StatusBadRequest)
+		return
+	}
+
 	processImage(w, r, func(inputImg image.Image) image.Image {
-		// TODO: remove hard-coded values
-		return image_processing.ResizeImage(inputImg, 200, 150)
+		return image_processing.ResizeImage(inputImg, width, height)
 	})
 }
 
