@@ -67,25 +67,27 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 }
 
 func cropHandler(w http.ResponseWriter, r *http.Request) {
-	x, err := strconv.Atoi(r.URL.Query().Get("x"))
+	params := r.URL.Query()
+
+	x, err := strconv.Atoi(params.Get("x"))
 	if err != nil {
 		http.Error(w, "Invalid value for 'x'", http.StatusBadRequest)
 		return
 	}
 
-	y, err := strconv.Atoi(r.URL.Query().Get("y"))
+	y, err := strconv.Atoi(params.Get("y"))
 	if err != nil {
 		http.Error(w, "Invalid value for 'y'", http.StatusBadRequest)
 		return
 	}
 
-	width, err := strconv.Atoi(r.URL.Query().Get("width"))
+	width, err := strconv.Atoi(params.Get("width"))
 	if err != nil {
 		http.Error(w, "Invalid value for 'width'", http.StatusBadRequest)
 		return
 	}
 
-	height, err := strconv.Atoi(r.URL.Query().Get("height"))
+	height, err := strconv.Atoi(params.Get("height"))
 	if err != nil {
 		http.Error(w, "Invalid value for 'height'", http.StatusBadRequest)
 		return
@@ -97,13 +99,15 @@ func cropHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func resizeHandler(w http.ResponseWriter, r *http.Request) {
-	width, err := strconv.Atoi(r.URL.Query().Get("width"))
+	params := r.URL.Query()
+
+	width, err := strconv.Atoi(params.Get("width"))
 	if err != nil {
 		http.Error(w, "Invalid value for 'width'", http.StatusBadRequest)
 		return
 	}
 
-	height, err := strconv.Atoi(r.URL.Query().Get("height"))
+	height, err := strconv.Atoi(params.Get("height"))
 	if err != nil {
 		http.Error(w, "Invalid value for 'height'", http.StatusBadRequest)
 		return
