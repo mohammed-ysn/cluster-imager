@@ -13,6 +13,26 @@ import (
 	"github.com/mohammed-ysn/cluster-imager/image_processing"
 )
 
+func main() {
+	server := &http.Server{
+		Addr:           ":8080",
+		ReadTimeout:    5 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20, // 1 MB max header size
+	}
+
+	// register the routes
+	http.HandleFunc("/crop", cropHandler)
+	http.HandleFunc("/resize", resizeHandler)
+
+	// start the server
+	fmt.Println("Server started on port 8080")
+	err := server.ListenAndServe()
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
+}
+
 func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(image.Image) image.Image) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -116,21 +136,4 @@ func resizeHandler(w http.ResponseWriter, r *http.Request) {
 	processImage(w, r, func(inputImg image.Image) image.Image {
 		return image_processing.ResizeImage(inputImg, width, height)
 	})
-}
-
-func main() {
-	server := &http.Server{
-		Addr:           ":8080",
-		Handler:        nil,
-		ReadTimeout:    5 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20, // 1 MB max header size
-	}
-	http.HandleFunc("/crop", cropHandler)
-	http.HandleFunc("/resize", resizeHandler)
-	fmt.Println("Server started on port 8080")
-	err := server.ListenAndServe()
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
 }
