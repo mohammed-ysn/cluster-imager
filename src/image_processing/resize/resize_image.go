@@ -1,4 +1,4 @@
-package image_processing
+package resize
 
 import (
 	"github.com/nfnt/resize"
