@@ -34,7 +34,7 @@ func StartServer() {
 	}
 }
 
-func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(image.Image) image.Image) {
+func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(image.Image) (image.Image, error)) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -45,14 +45,16 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 	// parse the multipart form data
 	err := r.ParseMultipartForm(10 << 20) // 10 MB max file size
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Error parsing multipart form: %v", err)
+		http.Error(w, "Failed to parse uploaded data", http.StatusBadRequest)
 		return
 	}
 
 	// get the uploaded file
 	file, _, err := r.FormFile("image")
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Printf("Error getting form file: %v", err)
+		http.Error(w, "No image file provided", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
@@ -60,18 +62,25 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 	// decode the uploaded image
 	inputImg, _, err := image.Decode(file)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Error decoding image: %v", err)
+		http.Error(w, "Invalid image format", http.StatusBadRequest)
 		return
 	}
 
 	// call image processing function
-	processedImage := processingFunc(inputImg)
+	processedImage, err := processingFunc(inputImg)
+	if err != nil {
+		log.Printf("Error processing image: %v", err)
+		http.Error(w, "Failed to process image", http.StatusBadRequest)
+		return
+	}
 
 	// encode the processed image as JPEG
 	var buf bytes.Buffer
 	err = jpeg.Encode(&buf, processedImage, nil)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Error encoding image: %v", err)
+		http.Error(w, "Failed to process image", http.StatusInternalServerError)
 		return
 	}
 
@@ -82,7 +91,8 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 	// write the processed image to the response writer
 	_, err = w.Write(buf.Bytes())
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Error writing response: %v", err)
+		// Can't send error response after headers are written
 		return
 	}
 }
@@ -128,13 +138,12 @@ func cropHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	processImage(w, r, func(inputImg image.Image) image.Image {
+	processImage(w, r, func(inputImg image.Image) (image.Image, error) {
 		// Additional validation with actual image bounds
 		if err := validation.ValidateCropParams(x, y, width, height, inputImg.Bounds().Dx(), inputImg.Bounds().Dy()); err != nil {
-			// Return empty image on validation error - this will be handled better in next commit
-			return image.NewRGBA(image.Rect(0, 0, 1, 1))
+			return nil, err
 		}
-		return crop.CropImage(inputImg, x, y, width, height)
+		return crop.CropImage(inputImg, x, y, width, height), nil
 	})
 }
 
@@ -159,7 +168,7 @@ func resizeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	processImage(w, r, func(inputImg image.Image) image.Image {
-		return resize.ResizeImage(inputImg, width, height)
+	processImage(w, r, func(inputImg image.Image) (image.Image, error) {
+		return resize.ResizeImage(inputImg, width, height), nil
 	})
 }
