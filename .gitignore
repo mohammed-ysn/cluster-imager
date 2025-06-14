@@ -15,12 +15,32 @@ build/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+coverage.html
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
 # Go workspace file
 go.work
+
+# Binary
+cluster-imager
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Project tracking files
+PROJECT_TRANSFORMATION.md
+COMMIT_PLAN.md
+
+# Environment files
+.env.local
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
