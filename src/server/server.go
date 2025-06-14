@@ -2,35 +2,76 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"image"
 	"image/jpeg"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"time"
 
+	"github.com/mohammed-ysn/cluster-imager/pkg/logging"
+	"github.com/mohammed-ysn/cluster-imager/pkg/middleware"
 	"github.com/mohammed-ysn/cluster-imager/pkg/validation"
 	"github.com/mohammed-ysn/cluster-imager/src/image_processing/crop"
 	"github.com/mohammed-ysn/cluster-imager/src/image_processing/resize"
 )
 
 func StartServer() {
+	// Initialize logger
+	logger := logging.NewLogger(slog.LevelInfo)
+	logger.Info("initializing server")
+
+	// Create a new mux instead of using default
+	mux := http.NewServeMux()
+	mux.HandleFunc("/crop", cropHandler)
+	mux.HandleFunc("/resize", resizeHandler)
+
+	// Apply middleware
+	handler := middleware.RequestLogging(logger)(mux)
+
 	server := &http.Server{
 		Addr:           ":8080",
+		Handler:        handler,
 		ReadTimeout:    5 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20, // 1 MB max header size
 	}
 
-	// register the routes
-	http.HandleFunc("/crop", cropHandler)
-	http.HandleFunc("/resize", resizeHandler)
+	// Setup graceful shutdown
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
-	// start the server
-	log.Println("Server started on port 8080")
-	err := server.ListenAndServe()
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	serverErrors := make(chan error, 1)
+
+	// Start the server
+	go func() {
+		logger.Info("server started", "addr", server.Addr)
+		serverErrors <- server.ListenAndServe()
+	}()
+
+	// Wait for shutdown or error
+	select {
+	case err := <-serverErrors:
+		logger.Error("server error", "error", err)
+		os.Exit(1)
+	case sig := <-shutdown:
+		logger.Info("shutdown signal received", "signal", sig)
+
+		// Give outstanding requests 5 seconds to complete
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := server.Shutdown(ctx); err != nil {
+			logger.Error("graceful shutdown failed", "error", err)
+			if err := server.Close(); err != nil {
+				logger.Error("forced shutdown failed", "error", err)
+			}
+		}
+		logger.Info("server stopped")
 	}
 }
 
@@ -40,12 +81,14 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 		return
 	}
 
-	log.Println("Handling new request")
+	// Get logger with request context
+	logger := logging.NewLogger(slog.LevelInfo).WithContext(r.Context())
+	logger.Debug("processing image request")
 
 	// parse the multipart form data
 	err := r.ParseMultipartForm(10 << 20) // 10 MB max file size
 	if err != nil {
-		log.Printf("Error parsing multipart form: %v", err)
+		logger.Error("failed to parse multipart form", "error", err)
 		http.Error(w, "Failed to parse uploaded data", http.StatusBadRequest)
 		return
 	}
@@ -53,7 +96,7 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 	// get the uploaded file
 	file, _, err := r.FormFile("image")
 	if err != nil {
-		log.Printf("Error getting form file: %v", err)
+		logger.Error("failed to get form file", "error", err)
 		http.Error(w, "No image file provided", http.StatusBadRequest)
 		return
 	}
@@ -62,7 +105,7 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 	// decode the uploaded image
 	inputImg, _, err := image.Decode(file)
 	if err != nil {
-		log.Printf("Error decoding image: %v", err)
+		logger.Error("failed to decode image", "error", err)
 		http.Error(w, "Invalid image format", http.StatusBadRequest)
 		return
 	}
@@ -70,7 +113,7 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 	// call image processing function
 	processedImage, err := processingFunc(inputImg)
 	if err != nil {
-		log.Printf("Error processing image: %v", err)
+		logger.Error("failed to process image", "error", err)
 		http.Error(w, "Failed to process image", http.StatusBadRequest)
 		return
 	}
@@ -79,7 +122,7 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 	var buf bytes.Buffer
 	err = jpeg.Encode(&buf, processedImage, nil)
 	if err != nil {
-		log.Printf("Error encoding image: %v", err)
+		logger.Error("failed to encode image", "error", err)
 		http.Error(w, "Failed to process image", http.StatusInternalServerError)
 		return
 	}
@@ -91,7 +134,7 @@ func processImage(w http.ResponseWriter, r *http.Request, processingFunc func(im
 	// write the processed image to the response writer
 	_, err = w.Write(buf.Bytes())
 	if err != nil {
-		log.Printf("Error writing response: %v", err)
+		logger.Error("failed to write response", "error", err)
 		// Can't send error response after headers are written
 		return
 	}
