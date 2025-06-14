@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/mohammed-ysn/cluster-imager/pkg/validation"
 	"github.com/mohammed-ysn/cluster-imager/src/image_processing/crop"
 	"github.com/mohammed-ysn/cluster-imager/src/image_processing/resize"
 )
@@ -113,7 +114,26 @@ func cropHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Validate parameters before processing
+	if x < 0 || y < 0 {
+		http.Error(w, "Coordinates cannot be negative", http.StatusBadRequest)
+		return
+	}
+	if err := validation.ValidateDimension(width, "width"); err != nil {
+		http.Error(w, "Invalid width parameter", http.StatusBadRequest)
+		return
+	}
+	if err := validation.ValidateDimension(height, "height"); err != nil {
+		http.Error(w, "Invalid height parameter", http.StatusBadRequest)
+		return
+	}
+
 	processImage(w, r, func(inputImg image.Image) image.Image {
+		// Additional validation with actual image bounds
+		if err := validation.ValidateCropParams(x, y, width, height, inputImg.Bounds().Dx(), inputImg.Bounds().Dy()); err != nil {
+			// Return empty image on validation error - this will be handled better in next commit
+			return image.NewRGBA(image.Rect(0, 0, 1, 1))
+		}
 		return crop.CropImage(inputImg, x, y, width, height)
 	})
 }
@@ -130,6 +150,12 @@ func resizeHandler(w http.ResponseWriter, r *http.Request) {
 	height, err := strconv.Atoi(params.Get("height"))
 	if err != nil {
 		http.Error(w, "Invalid value for 'height'", http.StatusBadRequest)
+		return
+	}
+
+	// Validate resize parameters
+	if err := validation.ValidateResizeParams(width, height); err != nil {
+		http.Error(w, "Invalid resize parameters", http.StatusBadRequest)
 		return
 	}
 

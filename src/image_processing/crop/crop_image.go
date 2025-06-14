@@ -10,9 +10,6 @@ import (
 // The resulting image will have the specified width and height,
 // starting from position (x, y) within the input image.
 func CropImage(inputImg image.Image, x, y, width, height int) image.Image {
-	// Define the rectangle for the crop area
-	cropRect := image.Rect(x, y, x+width, y+height)
-	
 	// Create a new image with the cropped dimensions
 	croppedImage := image.NewRGBA(image.Rect(0, 0, width, height))
 	
