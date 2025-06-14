@@ -21,11 +21,16 @@ echo -e "${GREEN}✅ Server is running${NC}"
 mkdir -p test-images
 cd test-images
 
-# Download sample image if not exists
-if [ ! -f "sample.jpg" ]; then
+# Download sample image if not exists or is empty
+if [ ! -f "sample.jpg" ] || [ ! -s "sample.jpg" ]; then
     echo "📥 Downloading sample image..."
-    curl -s -o sample.jpg https://picsum.photos/800/600
-    echo -e "${GREEN}✅ Sample image downloaded${NC}"
+    curl -L -s -o sample.jpg https://picsum.photos/800/600
+    if [ -s "sample.jpg" ]; then
+        echo -e "${GREEN}✅ Sample image downloaded${NC}"
+    else
+        echo -e "${RED}❌ Failed to download sample image${NC}"
+        exit 1
+    fi
 fi
 
 # Test 1: Resize
