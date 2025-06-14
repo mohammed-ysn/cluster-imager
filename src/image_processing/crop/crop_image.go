@@ -8,13 +8,16 @@ import (
 // CropImage crops the input image to the specified dimensions.
 //
 // The resulting image will have the specified width and height,
-// and will be positioned at (x, y) within the input image.
+// starting from position (x, y) within the input image.
 func CropImage(inputImg image.Image, x, y, width, height int) image.Image {
-	cropRect := inputImg.Bounds().Intersect(image.Rect(x, y, x+width, y+height))
-
-	croppedImage := image.NewRGBA(cropRect)
-
-	draw.Draw(croppedImage, cropRect, inputImg, image.Pt(x, y), draw.Src)
-
+	// Define the rectangle for the crop area
+	cropRect := image.Rect(x, y, x+width, y+height)
+	
+	// Create a new image with the cropped dimensions
+	croppedImage := image.NewRGBA(image.Rect(0, 0, width, height))
+	
+	// Draw the cropped portion onto the new image
+	draw.Draw(croppedImage, croppedImage.Bounds(), inputImg, image.Pt(x, y), draw.Src)
+	
 	return croppedImage
 }
