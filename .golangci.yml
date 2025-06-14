@@ -1,0 +1,45 @@
+run:
+  timeout: 5m
+  tests: true
+  
+linters:
+  enable:
+    - gofmt
+    - golint
+    - govet
+    - errcheck
+    - ineffassign
+    - gosimple
+    - staticcheck
+    - unused
+    - gosec
+    - gocyclo
+    - dupl
+    - misspell
+    - unparam
+    - nakedret
+    - prealloc
+    - scopelint
+    - gocritic
+    - gochecknoinits
+    - gochecknoglobals
+    
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  dupl:
+    threshold: 100
+  goconst:
+    min-len: 2
+    min-occurrences: 2
+  misspell:
+    locale: US
+  
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gocyclo
+        - errcheck
+        - dupl
+        - gosec
