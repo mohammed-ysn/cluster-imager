@@ -39,6 +39,10 @@ cluster-imager
 PROJECT_TRANSFORMATION.md
 COMMIT_PLAN.md
 
+# Test artifacts
+test-images/
+TESTING_GUIDE.md
+
 # Environment files
 .env.local
 
