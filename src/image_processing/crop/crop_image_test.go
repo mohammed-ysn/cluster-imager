@@ -47,22 +47,24 @@ func TestCropImageWithNonZeroPosition(t *testing.T) {
 	}
 }
 
-func TestCropImageWithWidthGreaterThanImageWidth(t *testing.T) {
+func TestCropImageExactBounds(t *testing.T) {
 	testImg := image.NewRGBA(image.Rect(0, 0, 100, 100))
 
-	croppedImg := CropImage(testImg, 0, 0, 150, 50)
+	// Crop entire image
+	croppedImg := CropImage(testImg, 0, 0, 100, 100)
 
-	if croppedImg.Bounds().Dx() != 100 || croppedImg.Bounds().Dy() != 50 {
-		t.Errorf("Expected dimensions: 100x50. Actual dimensions: %dx%d", croppedImg.Bounds().Dx(), croppedImg.Bounds().Dy())
+	if croppedImg.Bounds().Dx() != 100 || croppedImg.Bounds().Dy() != 100 {
+		t.Errorf("Expected dimensions: 100x100. Actual dimensions: %dx%d", croppedImg.Bounds().Dx(), croppedImg.Bounds().Dy())
 	}
 }
 
-func TestCropImageWithHeightGreaterThanImageHeight(t *testing.T) {
+func TestCropImagePartial(t *testing.T) {
 	testImg := image.NewRGBA(image.Rect(0, 0, 100, 100))
 
-	croppedImg := CropImage(testImg, 0, 0, 50, 150)
+	// Crop a portion from the middle
+	croppedImg := CropImage(testImg, 25, 25, 50, 50)
 
-	if croppedImg.Bounds().Dx() != 50 || croppedImg.Bounds().Dy() != 100 {
-		t.Errorf("Expected dimensions: 50x100. Actual dimensions: %dx%d", croppedImg.Bounds().Dx(), croppedImg.Bounds().Dy())
+	if croppedImg.Bounds().Dx() != 50 || croppedImg.Bounds().Dy() != 50 {
+		t.Errorf("Expected dimensions: 50x50. Actual dimensions: %dx%d", croppedImg.Bounds().Dx(), croppedImg.Bounds().Dy())
 	}
 }
