@@ -18,7 +18,7 @@ func TestValidateDimension(t *testing.T) {
 		{"zero dimension", 0, "width", true},
 		{"exceeds maximum", 10001, "width", true},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateDimension(tt.value, tt.dimName)
@@ -31,11 +31,11 @@ func TestValidateDimension(t *testing.T) {
 
 func TestValidateCropParams(t *testing.T) {
 	tests := []struct {
-		name       string
-		x, y       int
-		width, height int
+		name                string
+		x, y                int
+		width, height       int
 		imgWidth, imgHeight int
-		wantErr    bool
+		wantErr             bool
 	}{
 		{"valid crop", 10, 10, 50, 50, 100, 100, false},
 		{"crop at origin", 0, 0, 50, 50, 100, 100, false},
@@ -48,7 +48,7 @@ func TestValidateCropParams(t *testing.T) {
 		{"exceeds image height", 10, 60, 50, 50, 100, 100, true},
 		{"exactly at bounds", 50, 50, 50, 50, 100, 100, false},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateCropParams(tt.x, tt.y, tt.width, tt.height, tt.imgWidth, tt.imgHeight)
@@ -61,9 +61,9 @@ func TestValidateCropParams(t *testing.T) {
 
 func TestValidateResizeParams(t *testing.T) {
 	tests := []struct {
-		name   string
-		width  int
-		height int
+		name    string
+		width   int
+		height  int
 		wantErr bool
 	}{
 		{"valid resize", 100, 200, false},
@@ -76,7 +76,7 @@ func TestValidateResizeParams(t *testing.T) {
 		{"exceeds max width", 10001, 200, true},
 		{"exceeds max height", 100, 10001, true},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := ValidateResizeParams(tt.width, tt.height)

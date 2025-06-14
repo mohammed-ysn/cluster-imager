@@ -14,7 +14,7 @@ func TestCropProcessor_Name(t *testing.T) {
 
 func TestCropProcessor_ValidateParams(t *testing.T) {
 	p := NewCropProcessor()
-	
+
 	tests := []struct {
 		name    string
 		params  map[string]interface{}
@@ -80,7 +80,7 @@ func TestCropProcessor_ValidateParams(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := p.ValidateParams(tt.params)
@@ -93,10 +93,10 @@ func TestCropProcessor_ValidateParams(t *testing.T) {
 
 func TestCropProcessor_Process(t *testing.T) {
 	p := NewCropProcessor()
-	
+
 	// Create a test image
 	img := image.NewRGBA(image.Rect(0, 0, 200, 200))
-	
+
 	tests := []struct {
 		name    string
 		params  map[string]interface{}
@@ -133,7 +133,7 @@ func TestCropProcessor_Process(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := p.Process(img, tt.params)

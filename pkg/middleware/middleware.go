@@ -33,18 +33,18 @@ func RequestLogging(logger *logging.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
-			
+
 			// Generate request ID
 			requestID := logging.GenerateRequestID()
 			ctx := logging.WithRequestID(r.Context(), requestID)
 			r = r.WithContext(ctx)
-			
+
 			// Add request ID to response header
 			w.Header().Set("X-Request-ID", requestID)
-			
+
 			// Wrap response writer
 			wrapped := &responseWriter{ResponseWriter: w, status: http.StatusOK}
-			
+
 			// Log request start
 			reqLogger := logger.WithContext(ctx)
 			reqLogger.Info("request started",
@@ -53,10 +53,10 @@ func RequestLogging(logger *logging.Logger) func(http.Handler) http.Handler {
 				"remote_addr", r.RemoteAddr,
 				"user_agent", r.UserAgent(),
 			)
-			
+
 			// Process request
 			next.ServeHTTP(wrapped, r)
-			
+
 			// Log request completion
 			duration := time.Since(start)
 			reqLogger.Info("request completed",

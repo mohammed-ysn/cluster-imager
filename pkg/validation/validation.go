@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	ErrInvalidDimension = errors.New("invalid dimension")
+	ErrInvalidDimension  = errors.New("invalid dimension")
 	ErrDimensionTooLarge = errors.New("dimension exceeds maximum allowed size")
 	ErrDimensionTooSmall = errors.New("dimension below minimum allowed size")
 	ErrNegativeDimension = errors.New("dimension cannot be negative")
@@ -41,7 +41,7 @@ func ValidateCropParams(x, y, width, height int, imgWidth, imgHeight int) error 
 	if err := ValidateDimension(height, "height"); err != nil {
 		return err
 	}
-	
+
 	// X and Y can be 0, but not negative
 	if x < 0 {
 		return fmt.Errorf("x coordinate cannot be negative")
@@ -49,7 +49,7 @@ func ValidateCropParams(x, y, width, height int, imgWidth, imgHeight int) error 
 	if y < 0 {
 		return fmt.Errorf("y coordinate cannot be negative")
 	}
-	
+
 	// Check if crop area is within image bounds
 	if x+width > imgWidth {
 		return fmt.Errorf("crop area exceeds image width")
@@ -57,7 +57,7 @@ func ValidateCropParams(x, y, width, height int, imgWidth, imgHeight int) error 
 	if y+height > imgHeight {
 		return fmt.Errorf("crop area exceeds image height")
 	}
-	
+
 	return nil
 }
 

@@ -22,12 +22,12 @@ func (p *ResizeProcessor) Process(img image.Image, params map[string]interface{}
 	if !ok {
 		return nil, fmt.Errorf("width parameter is required and must be an integer")
 	}
-	
+
 	height, ok := params["height"].(int)
 	if !ok {
 		return nil, fmt.Errorf("height parameter is required and must be an integer")
 	}
-	
+
 	return resize.ResizeImage(img, width, height), nil
 }
 
@@ -37,12 +37,12 @@ func (p *ResizeProcessor) ValidateParams(params map[string]interface{}) error {
 	if !ok {
 		return fmt.Errorf("width parameter is required and must be an integer")
 	}
-	
+
 	height, ok := params["height"].(int)
 	if !ok {
 		return fmt.Errorf("height parameter is required and must be an integer")
 	}
-	
+
 	return validation.ValidateResizeParams(width, height)
 }
 

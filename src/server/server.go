@@ -22,7 +22,7 @@ func StartServer() {
 
 	// Create processor registry
 	registry := processors.DefaultRegistry()
-	
+
 	// Create handlers
 	h := handlers.New(logger, registry)
 

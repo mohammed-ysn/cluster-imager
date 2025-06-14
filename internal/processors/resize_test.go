@@ -14,7 +14,7 @@ func TestResizeProcessor_Name(t *testing.T) {
 
 func TestResizeProcessor_ValidateParams(t *testing.T) {
 	p := NewResizeProcessor()
-	
+
 	tests := []struct {
 		name    string
 		params  map[string]interface{}
@@ -68,7 +68,7 @@ func TestResizeProcessor_ValidateParams(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := p.ValidateParams(tt.params)
@@ -81,10 +81,10 @@ func TestResizeProcessor_ValidateParams(t *testing.T) {
 
 func TestResizeProcessor_Process(t *testing.T) {
 	p := NewResizeProcessor()
-	
+
 	// Create a test image
 	img := image.NewRGBA(image.Rect(0, 0, 200, 200))
-	
+
 	tests := []struct {
 		name         string
 		params       map[string]interface{}
@@ -111,7 +111,7 @@ func TestResizeProcessor_Process(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result, err := p.Process(img, tt.params)
