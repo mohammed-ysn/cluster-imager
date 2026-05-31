@@ -109,45 +109,35 @@ func (q *NATSQueue) Subscribe(ctx context.Context, handler JobHandler) error {
 		return fmt.Errorf("failed to get message channel: %w", err)
 	}
 
-	// Process messages
 	go func() {
+		defer msgs.Stop()
 		for {
-			select {
-			case <-ctx.Done():
-				return
-			case msg := <-msgs:
-				if msg == nil {
-					continue
+			msg, err := msgs.Next()
+			if err != nil {
+				if ctx.Err() != nil {
+					return
 				}
+				continue
+			}
 
-				// Unmarshal job
-				var j job.Job
-				if err := json.Unmarshal(msg.Data(), &j); err != nil {
-					// Bad message, acknowledge and continue
-					msg.Ack()
-					continue
-				}
+			var j job.Job
+			if err := json.Unmarshal(msg.Data(), &j); err != nil {
+				msg.Ack()
+				continue
+			}
 
-				// Process job
-				if err := handler(ctx, &j); err != nil {
-					// Handle retry logic
-					if j.Metadata.RetryCount < q.config.MaxRetry {
-						// Negative acknowledgment for retry
-						msg.Nak()
-					} else {
-						// Max retries reached, acknowledge to remove from queue
-						// In production, we'd send to a dead letter queue
-						msg.Ack()
-					}
+			if err := handler(ctx, &j); err != nil {
+				if j.Metadata.RetryCount < q.config.MaxRetry {
+					msg.Nak()
 				} else {
-					// Success, acknowledge
 					msg.Ack()
 				}
+			} else {
+				msg.Ack()
 			}
 		}
 	}()
 
-	// Wait for context cancellation
 	<-ctx.Done()
 	return nil
 }
