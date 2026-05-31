@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine
+FROM golang:1.26-alpine AS builder
 
 WORKDIR /app
 
@@ -8,6 +8,10 @@ RUN go mod download
 COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o /cluster-imager
+
+FROM gcr.io/distroless/static-debian12
+
+COPY --from=builder /cluster-imager /cluster-imager
 
 EXPOSE 8080
 
