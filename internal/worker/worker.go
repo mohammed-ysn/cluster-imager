@@ -91,6 +91,7 @@ func (w *Worker) process(ctx context.Context, j *job.Job) (*job.Result, error) {
 	}
 
 	resultKey := "results/" + j.ID + ".jpg"
+	size := int64(buf.Len())
 	if err := w.storage.Upload(ctx, resultKey, &buf, "image/jpeg"); err != nil {
 		return nil, fmt.Errorf("upload result: %w", err)
 	}
@@ -99,7 +100,7 @@ func (w *Worker) process(ctx context.Context, j *job.Job) (*job.Result, error) {
 	return &job.Result{
 		StorageKey: resultKey,
 		MimeType:   "image/jpeg",
-		Size:       int64(buf.Len()),
+		Size:       size,
 		Width:      bounds.Dx(),
 		Height:     bounds.Dy(),
 	}, nil
