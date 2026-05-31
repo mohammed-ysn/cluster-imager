@@ -1,179 +1,173 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
-	"image"
-	"image/jpeg"
 	"net/http"
 	"strconv"
 
+	"github.com/google/uuid"
 	"github.com/mohammed-ysn/cluster-imager/internal/processors"
+	"github.com/mohammed-ysn/cluster-imager/pkg/job"
 	"github.com/mohammed-ysn/cluster-imager/pkg/logging"
+	"github.com/mohammed-ysn/cluster-imager/pkg/queue"
+	"github.com/mohammed-ysn/cluster-imager/pkg/storage"
 )
 
-// Handlers contains HTTP handlers
 type Handlers struct {
 	logger   *logging.Logger
 	registry *processors.Registry
+	jobs     job.Store
+	storage  storage.Storage
+	queue    queue.Publisher
 }
 
-// New creates new handlers instance
-func New(logger *logging.Logger, registry *processors.Registry) *Handlers {
+func New(logger *logging.Logger, registry *processors.Registry, jobs job.Store, stor storage.Storage, q queue.Publisher) *Handlers {
 	return &Handlers{
 		logger:   logger,
 		registry: registry,
+		jobs:     jobs,
+		storage:  stor,
+		queue:    q,
 	}
 }
 
-// LiveHandler handles liveness probe requests.
 func (h *Handlers) LiveHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-// ReadyHandler handles readiness probe requests.
 func (h *Handlers) ReadyHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-// CropHandler handles image cropping requests
 func (h *Handlers) CropHandler(w http.ResponseWriter, r *http.Request) {
-	params := r.URL.Query()
-
-	x, err := strconv.Atoi(params.Get("x"))
-	if err != nil {
-		http.Error(w, "Invalid value for 'x'", http.StatusBadRequest)
-		return
-	}
-
-	y, err := strconv.Atoi(params.Get("y"))
-	if err != nil {
-		http.Error(w, "Invalid value for 'y'", http.StatusBadRequest)
-		return
-	}
-
-	width, err := strconv.Atoi(params.Get("width"))
-	if err != nil {
-		http.Error(w, "Invalid value for 'width'", http.StatusBadRequest)
-		return
-	}
-
-	height, err := strconv.Atoi(params.Get("height"))
-	if err != nil {
-		http.Error(w, "Invalid value for 'height'", http.StatusBadRequest)
-		return
-	}
-
-	processorParams := map[string]interface{}{
-		"x":      x,
-		"y":      y,
-		"width":  width,
-		"height": height,
-	}
-
-	h.processImage(w, r, "crop", processorParams)
-}
-
-// ResizeHandler handles image resizing requests
-func (h *Handlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
-	params := r.URL.Query()
-
-	width, err := strconv.Atoi(params.Get("width"))
-	if err != nil {
-		http.Error(w, "Invalid value for 'width'", http.StatusBadRequest)
-		return
-	}
-
-	height, err := strconv.Atoi(params.Get("height"))
-	if err != nil {
-		http.Error(w, "Invalid value for 'height'", http.StatusBadRequest)
-		return
-	}
-
-	processorParams := map[string]interface{}{
-		"width":  width,
-		"height": height,
-	}
-
-	h.processImage(w, r, "resize", processorParams)
-}
-
-// processImage is a generic image processing handler
-func (h *Handlers) processImage(w http.ResponseWriter, r *http.Request, processorName string, params map[string]interface{}) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Get logger with request context
+	q := r.URL.Query()
+	x, err := strconv.Atoi(q.Get("x"))
+	if err != nil {
+		http.Error(w, "invalid value for 'x'", http.StatusBadRequest)
+		return
+	}
+	y, err := strconv.Atoi(q.Get("y"))
+	if err != nil {
+		http.Error(w, "invalid value for 'y'", http.StatusBadRequest)
+		return
+	}
+	width, err := strconv.Atoi(q.Get("width"))
+	if err != nil {
+		http.Error(w, "invalid value for 'width'", http.StatusBadRequest)
+		return
+	}
+	height, err := strconv.Atoi(q.Get("height"))
+	if err != nil {
+		http.Error(w, "invalid value for 'height'", http.StatusBadRequest)
+		return
+	}
+
+	h.enqueue(w, r, job.TypeCrop, map[string]any{
+		"x": x, "y": y, "width": width, "height": height,
+	})
+}
+
+func (h *Handlers) ResizeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	q := r.URL.Query()
+	width, err := strconv.Atoi(q.Get("width"))
+	if err != nil {
+		http.Error(w, "invalid value for 'width'", http.StatusBadRequest)
+		return
+	}
+	height, err := strconv.Atoi(q.Get("height"))
+	if err != nil {
+		http.Error(w, "invalid value for 'height'", http.StatusBadRequest)
+		return
+	}
+
+	h.enqueue(w, r, job.TypeResize, map[string]any{
+		"width": width, "height": height,
+	})
+}
+
+func (h *Handlers) JobStatusHandler(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" {
+		http.Error(w, "missing job id", http.StatusBadRequest)
+		return
+	}
+
+	j, err := h.jobs.Get(r.Context(), id)
+	if err != nil {
+		http.Error(w, "job not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(j)
+}
+
+func (h *Handlers) enqueue(w http.ResponseWriter, r *http.Request, jobType job.Type, params map[string]any) {
 	logger := h.logger.WithContext(r.Context())
-	logger.Debug("processing image request", "processor", processorName)
 
-	// Get processor
-	processor, err := h.registry.Get(processorName)
-	if err != nil {
-		logger.Error("processor not found", "processor", processorName, "error", err)
-		http.Error(w, "Invalid processor", http.StatusInternalServerError)
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		http.Error(w, "failed to parse form", http.StatusBadRequest)
 		return
 	}
 
-	// Validate parameters
-	if err := processor.ValidateParams(params); err != nil {
-		logger.Debug("invalid parameters", "error", err)
-		http.Error(w, "Invalid parameters", http.StatusBadRequest)
-		return
-	}
-
-	// Parse multipart form
-	err = r.ParseMultipartForm(10 << 20) // 10 MB max file size
+	file, header, err := r.FormFile("image")
 	if err != nil {
-		logger.Error("failed to parse multipart form", "error", err)
-		http.Error(w, "Failed to parse uploaded data", http.StatusBadRequest)
-		return
-	}
-
-	// Get uploaded file
-	file, _, err := r.FormFile("image")
-	if err != nil {
-		logger.Error("failed to get form file", "error", err)
-		http.Error(w, "No image file provided", http.StatusBadRequest)
+		http.Error(w, "no image file provided", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	// Decode image
-	inputImg, _, err := image.Decode(file)
-	if err != nil {
-		logger.Error("failed to decode image", "error", err)
-		http.Error(w, "Invalid image format", http.StatusBadRequest)
+	jobID := uuid.New().String()
+	storageKey := "inputs/" + jobID
+
+	if err := h.storage.Upload(r.Context(), storageKey, file, header.Header.Get("Content-Type")); err != nil {
+		logger.Error("failed to upload image", "error", err)
+		http.Error(w, "failed to store image", http.StatusInternalServerError)
 		return
 	}
 
-	// Process image
-	processedImage, err := processor.Process(inputImg, params)
-	if err != nil {
-		logger.Error("failed to process image", "processor", processorName, "error", err)
-		http.Error(w, "Failed to process image", http.StatusBadRequest)
+	j := &job.Job{
+		ID:         jobID,
+		Type:       jobType,
+		Status:     job.StatusQueued,
+		Parameters: params,
+		Input: job.Input{
+			StorageKey: storageKey,
+			MimeType:   header.Header.Get("Content-Type"),
+			Size:       header.Size,
+		},
+		Metadata: job.Metadata{
+			RequestID: logging.GetRequestID(r.Context()),
+		},
+	}
+
+	if err := h.jobs.Create(r.Context(), j); err != nil {
+		logger.Error("failed to create job", "error", err)
+		http.Error(w, "failed to create job", http.StatusInternalServerError)
 		return
 	}
 
-	// Encode result
-	var buf bytes.Buffer
-	err = jpeg.Encode(&buf, processedImage, nil)
-	if err != nil {
-		logger.Error("failed to encode image", "error", err)
-		http.Error(w, "Failed to process image", http.StatusInternalServerError)
+	if err := h.queue.Publish(r.Context(), j); err != nil {
+		logger.Error("failed to publish job", "error", err)
+		http.Error(w, "failed to queue job", http.StatusInternalServerError)
 		return
 	}
 
-	// Send response
-	w.Header().Set("Content-Type", "image/jpeg")
-	w.Header().Set("Content-Length", strconv.Itoa(len(buf.Bytes())))
+	logger.Info("job queued", "job_id", jobID, "type", jobType)
 
-	_, err = w.Write(buf.Bytes())
-	if err != nil {
-		logger.Error("failed to write response", "error", err)
-	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]string{"job_id": jobID})
 }
