@@ -23,6 +23,8 @@ func StartServer() {
 	h := handlers.New(logger, registry)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/health/live", h.LiveHandler)
+	mux.HandleFunc("/health/ready", h.ReadyHandler)
 	mux.HandleFunc("/crop", h.CropHandler)
 	mux.HandleFunc("/resize", h.ResizeHandler)
 

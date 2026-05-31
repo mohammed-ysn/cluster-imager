@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"image"
 	"image/jpeg"
 	"net/http"
@@ -23,6 +24,18 @@ func New(logger *logging.Logger, registry *processors.Registry) *Handlers {
 		logger:   logger,
 		registry: registry,
 	}
+}
+
+// LiveHandler handles liveness probe requests.
+func (h *Handlers) LiveHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+// ReadyHandler handles readiness probe requests.
+func (h *Handlers) ReadyHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
 // CropHandler handles image cropping requests
