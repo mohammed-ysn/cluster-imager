@@ -5,7 +5,7 @@ import (
 	"image"
 
 	"github.com/mohammed-ysn/cluster-imager/pkg/validation"
-	"github.com/mohammed-ysn/cluster-imager/src/image_processing/resize"
+	"github.com/nfnt/resize"
 )
 
 // ResizeProcessor implements the Processor interface for resizing images
@@ -28,7 +28,7 @@ func (p *ResizeProcessor) Process(img image.Image, params map[string]interface{}
 		return nil, fmt.Errorf("height parameter is required and must be an integer")
 	}
 
-	return resize.ResizeImage(img, width, height), nil
+	return resize.Resize(uint(width), uint(height), img, resize.Lanczos2), nil
 }
 
 // ValidateParams validates the resize parameters

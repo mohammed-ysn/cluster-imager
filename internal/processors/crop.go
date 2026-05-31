@@ -3,9 +3,9 @@ package processors
 import (
 	"fmt"
 	"image"
+	"image/draw"
 
 	"github.com/mohammed-ysn/cluster-imager/pkg/validation"
-	"github.com/mohammed-ysn/cluster-imager/src/image_processing/crop"
 )
 
 // CropProcessor implements the Processor interface for cropping images
@@ -43,7 +43,9 @@ func (p *CropProcessor) Process(img image.Image, params map[string]interface{}) 
 		return nil, err
 	}
 
-	return crop.CropImage(img, x, y, width, height), nil
+	out := image.NewRGBA(image.Rect(0, 0, width, height))
+	draw.Draw(out, out.Bounds(), img, image.Pt(x, y), draw.Src)
+	return out, nil
 }
 
 // ValidateParams validates the crop parameters

@@ -16,45 +16,36 @@ import (
 )
 
 func StartServer() {
-	// Initialize logger
 	logger := logging.NewLogger(slog.LevelInfo)
 	logger.Info("initializing server")
 
-	// Create processor registry
 	registry := processors.DefaultRegistry()
-
-	// Create handlers
 	h := handlers.New(logger, registry)
 
-	// Create a new mux instead of using default
 	mux := http.NewServeMux()
 	mux.HandleFunc("/crop", h.CropHandler)
 	mux.HandleFunc("/resize", h.ResizeHandler)
 
-	// Apply middleware
 	handler := middleware.RequestLogging(logger)(mux)
 
-	server := &http.Server{
+	srv := &http.Server{
 		Addr:           ":8080",
 		Handler:        handler,
 		ReadTimeout:    5 * time.Second,
 		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20, // 1 MB max header size
+		MaxHeaderBytes: 1 << 20,
 	}
 
-	// Setup graceful shutdown
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
 	serverErrors := make(chan error, 1)
 
-	// Start the server
 	go func() {
-		logger.Info("server started", "addr", server.Addr)
-		serverErrors <- server.ListenAndServe()
+		logger.Info("server started", "addr", srv.Addr)
+		serverErrors <- srv.ListenAndServe()
 	}()
 
-	// Wait for shutdown or error
 	select {
 	case err := <-serverErrors:
 		logger.Error("server error", "error", err)
@@ -62,13 +53,12 @@ func StartServer() {
 	case sig := <-shutdown:
 		logger.Info("shutdown signal received", "signal", sig)
 
-		// Give outstanding requests 5 seconds to complete
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
-		if err := server.Shutdown(ctx); err != nil {
+		if err := srv.Shutdown(ctx); err != nil {
 			logger.Error("graceful shutdown failed", "error", err)
-			if err := server.Close(); err != nil {
+			if err := srv.Close(); err != nil {
 				logger.Error("forced shutdown failed", "error", err)
 			}
 		}
