@@ -107,8 +107,25 @@ go test -tags integration ./internal/integration/
 
 ## Kubernetes
 
-Manifests in `k8s/`. Update image references and secret values before applying.
+Requires minikube and Helm.
 
 ```bash
+# Start cluster
+minikube start --driver=docker
+
+# Deploy Redis and NATS
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add nats https://nats-io.github.io/k8s/helm/charts
+helm repo update
+helm install redis bitnami/redis --set auth.enabled=false --set replica.replicaCount=0
+helm install nats nats/nats --set config.jetstream.enabled=true
+
+# Load image and apply manifests
+minikube image load cluster-imager-app:latest
 kubectl apply -f k8s/
+
+# Access the API
+kubectl port-forward svc/cluster-imager-api 8080:80
 ```
+
+API available at `http://localhost:8080` once port-forward is running.
