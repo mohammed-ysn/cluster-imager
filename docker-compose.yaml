@@ -1,0 +1,24 @@
+services:
+  redis:
+    image: redis:7-alpine
+
+  nats:
+    image: nats:2-alpine
+    command: ["-js"]
+
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_URL: redis://redis:6379
+      NATS_URL: nats://nats:4222
+      STORAGE_LOCAL_PATH: /data/images
+    volumes:
+      - image-storage:/data/images
+    depends_on:
+      - redis
+      - nats
+
+volumes:
+  image-storage:
