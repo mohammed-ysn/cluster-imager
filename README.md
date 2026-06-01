@@ -1,43 +1,114 @@
-# Cluster Imager
+# cluster-imager
 
-A distributed image processing system using Go and Kubernetes
+Distributed image processing system built with Go and Kubernetes. Accepts image upload requests via HTTP, queues jobs through NATS JetStream, processes them asynchronously in a worker pool, and stores results on disk (swappable for S3/MinIO).
 
-## Getting Started
+## Architecture
 
-Ensure you have Docker installed. To run the server, follow these steps:
-
-1. Clone the repository.
-
-```bash
-git clone https://github.com/mohammed-ysn/cluster-imager.git
+```
+HTTP API  ->  NATS JetStream  ->  Worker
+   |                                 |
+Redis (job store)          Local/S3 Storage
 ```
 
-2. Change to the project directory.
+- **API** - accepts requests, stores input, creates job record, publishes to queue, returns job ID
+- **Worker** - consumes queue, processes image, writes result, updates job status
+- **Redis** - job status and metadata
+- **NATS JetStream** - durable message queue with retry
+
+## Running locally
+
+Requires Docker.
 
 ```bash
-cd cluster-imager/
+docker compose up --build
 ```
 
-3. Build the Docker image.
+API available at `http://localhost:8080`.
+
+## API
+
+### Resize
+
+```
+POST /api/v1/resize?width=<int>&height=<int>
+Content-Type: multipart/form-data
+Body: image=<file>
+```
 
 ```bash
-docker build -t cluster-imager-img .
+curl -X POST "http://localhost:8080/api/v1/resize?width=200&height=200" \
+  -F "image=@photo.jpg"
 ```
 
-4. Run the Docker container.
+```json
+{"job_id": "3f2a1b4c-..."}
+```
+
+### Crop
+
+```
+POST /api/v1/crop?x=<int>&y=<int>&width=<int>&height=<int>
+Content-Type: multipart/form-data
+Body: image=<file>
+```
 
 ```bash
-docker run -p 8080:8080 cluster-imager-img
+curl -X POST "http://localhost:8080/api/v1/crop?x=0&y=0&width=100&height=100" \
+  -F "image=@photo.jpg"
 ```
 
-The server should now be running on `localhost:8080`.
+### Job status
 
-## Usage
+```
+GET /api/v1/jobs/{job_id}
+```
 
-### Endpoints
+```bash
+curl http://localhost:8080/api/v1/jobs/3f2a1b4c-...
+```
 
-<!-- TODO: complete this section with resize and crop endpoints -->
+```json
+{
+  "job_id": "3f2a1b4c-...",
+  "type": "resize",
+  "status": "completed",
+  "result": {
+    "storage_key": "results/3f2a1b4c-....jpg",
+    "mime_type": "image/jpeg",
+    "size": 4120,
+    "width": 200,
+    "height": 200
+  }
+}
+```
 
-### Examples
+Job status values: `queued` -> `processing` -> `completed` or `failed`
 
-<!-- TODO: insert examples -->
+### Health
+
+```
+GET /health/live
+GET /health/ready
+```
+
+## Configuration
+
+Configured via environment variables. Copy `.env.example` to `.env` and adjust as needed. See [`internal/config/config.go`](internal/config/config.go) for all variables and their defaults.
+
+## Testing
+
+```bash
+# Unit tests
+go test ./...
+
+# Integration tests (requires running stack)
+go test -tags integration ./internal/integration/
+```
+
+## Kubernetes
+
+Manifests in `k8s/`. Update image references and secret values before applying.
+
+```bash
+kubectl apply -f k8s/
+```
