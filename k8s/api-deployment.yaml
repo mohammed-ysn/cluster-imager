@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-imager-api
+  namespace: default
+  labels:
+    app: cluster-imager
+    component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cluster-imager
+      component: api
+  template:
+    metadata:
+      labels:
+        app: cluster-imager
+        component: api
+    spec:
+      containers:
+        - name: api
+          image: cluster-imager:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: cluster-imager-config
+            - secretRef:
+                name: cluster-imager-secrets
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: image-storage
+              mountPath: /data/images
+      volumes:
+        - name: image-storage
+          emptyDir: {}

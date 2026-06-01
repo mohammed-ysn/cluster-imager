@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-imager-worker
+  namespace: default
+  labels:
+    app: cluster-imager
+    component: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cluster-imager
+      component: worker
+  template:
+    metadata:
+      labels:
+        app: cluster-imager
+        component: worker
+    spec:
+      containers:
+        - name: worker
+          image: cluster-imager:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: cluster-imager-config
+            - secretRef:
+                name: cluster-imager-secrets
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+          volumeMounts:
+            - name: image-storage
+              mountPath: /data/images
+      volumes:
+        - name: image-storage
+          emptyDir: {}

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-imager-config
+  namespace: default
+data:
+  PORT: "8080"
+  STORAGE_TYPE: "local"
+  STORAGE_LOCAL_PATH: "/data/images"
+  NATS_STREAM: "IMAGES"
+  NATS_SUBJECT: "images.process"
+  NATS_CONSUMER: "worker"
+  NATS_MAX_RETRY: "3"
+  JOB_TTL: "24h"
