@@ -20,8 +20,8 @@ spec:
     spec:
       containers:
         - name: api
-          image: cluster-imager:latest
-          imagePullPolicy: IfNotPresent
+          image: cluster-imager-app:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8080
           envFrom:
