@@ -122,18 +122,18 @@ func (q *NATSQueue) Subscribe(ctx context.Context, handler JobHandler) error {
 
 			var j job.Job
 			if err := json.Unmarshal(msg.Data(), &j); err != nil {
-				msg.Ack()
+				_ = msg.Ack()
 				continue
 			}
 
 			if err := handler(ctx, &j); err != nil {
 				if j.Metadata.RetryCount < q.config.MaxRetry {
-					msg.Nak()
+					_ = msg.Nak()
 				} else {
-					msg.Ack()
+					_ = msg.Ack()
 				}
 			} else {
-				msg.Ack()
+				_ = msg.Ack()
 			}
 		}
 	}()

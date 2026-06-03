@@ -43,7 +43,7 @@ func NewRedisStore(url string, prefix string, ttl time.Duration) (*RedisStore, e
 // Create creates a new job
 func (s *RedisStore) Create(ctx context.Context, job *Job) error {
 	key := s.key(job.ID)
-	
+
 	// Set metadata
 	job.Metadata.CreatedAt = time.Now()
 	job.Metadata.UpdatedAt = time.Now()
@@ -90,7 +90,9 @@ func (s *RedisStore) Update(ctx context.Context, job *Job) error {
 	// Remove from old status index
 	oldJob, err := s.Get(ctx, job.ID)
 	if err == nil {
-		s.removeFromIndex(ctx, oldJob)
+		if err := s.removeFromIndex(ctx, oldJob); err != nil {
+			return fmt.Errorf("failed to remove from old index: %w", err)
+		}
 	}
 
 	// Update timestamp
@@ -127,9 +129,10 @@ func (s *RedisStore) UpdateStatus(ctx context.Context, id string, status Status,
 	job.Error = errMsg
 
 	// Update timestamps
-	if status == StatusProcessing {
+	switch status {
+	case StatusProcessing:
 		job.Metadata.StartedAt = time.Now()
-	} else if status == StatusCompleted || status == StatusFailed {
+	case StatusCompleted, StatusFailed:
 		job.Metadata.CompletedAt = time.Now()
 	}
 
@@ -140,16 +143,16 @@ func (s *RedisStore) UpdateStatus(ctx context.Context, id string, status Status,
 func (s *RedisStore) List(ctx context.Context, filter Filter) ([]*Job, error) {
 	// For simplicity, we'll use status-based indices
 	// In production, consider using Redis sorted sets for time-based queries
-	
+
 	var keys []string
-	
+
 	if filter.Status != "" {
 		indexKey := s.indexKey(string(filter.Status))
 		jobIDs, err := s.client.SMembers(ctx, indexKey).Result()
 		if err != nil {
 			return nil, fmt.Errorf("failed to get job IDs from index: %w", err)
 		}
-		
+
 		for _, id := range jobIDs {
 			keys = append(keys, s.key(id))
 		}

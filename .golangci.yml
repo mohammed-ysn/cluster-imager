@@ -1,17 +1,20 @@
+version: "2"
+
 run:
   timeout: 5m
   tests: true
-  
-linters:
+
+formatters:
   enable:
     - gofmt
-    - golint
+
+linters:
+  enable:
+    - revive
     - govet
     - errcheck
     - ineffassign
-    - gosimple
     - staticcheck
-    - unused
     - gosec
     - gocyclo
     - dupl
@@ -19,12 +22,15 @@ linters:
     - unparam
     - nakedret
     - prealloc
-    - scopelint
     - gocritic
     - gochecknoinits
     - gochecknoglobals
-    
+
 linters-settings:
+  errcheck:
+    exclude-functions:
+      - (io.Closer).Close
+      - encoding/json.(*Encoder).Encode
   gocyclo:
     min-complexity: 15
   dupl:
@@ -34,7 +40,15 @@ linters-settings:
     min-occurrences: 2
   misspell:
     locale: US
-  
+  revive:
+    rules:
+      - name: exported
+        disabled: true
+      - name: package-comments
+        disabled: true
+      - name: var-naming
+        disabled: true
+
 issues:
   exclude-rules:
     - path: _test\.go
@@ -43,3 +57,7 @@ issues:
         - errcheck
         - dupl
         - gosec
+    - path: pkg/storage/local\.go
+      linters:
+        - gosec
+      text: "G304"

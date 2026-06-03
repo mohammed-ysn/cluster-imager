@@ -60,7 +60,11 @@ func (r *Registry) List() []string {
 // DefaultRegistry creates a registry with default processors
 func DefaultRegistry() *Registry {
 	registry := NewRegistry()
-	registry.Register("crop", NewCropProcessor())
-	registry.Register("resize", NewResizeProcessor())
+	if err := registry.Register("crop", NewCropProcessor()); err != nil {
+		panic(err)
+	}
+	if err := registry.Register("resize", NewResizeProcessor()); err != nil {
+		panic(err)
+	}
 	return registry
 }

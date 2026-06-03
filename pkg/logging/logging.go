@@ -26,7 +26,7 @@ type Logger struct {
 func NewLogger(level slog.Level) *Logger {
 	opts := &slog.HandlerOptions{
 		Level: level,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
 			// Customize time format
 			if a.Key == slog.TimeKey {
 				if t, ok := a.Value.Any().(time.Time); ok {

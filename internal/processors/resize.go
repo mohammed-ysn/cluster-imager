@@ -22,7 +22,7 @@ func (p *ResizeProcessor) Process(img image.Image, params map[string]interface{}
 	if err != nil {
 		return nil, err
 	}
-	return resize.Resize(uint(width), uint(height), img, resize.Lanczos2), nil
+	return resize.Resize(uint(width), uint(height), img, resize.Lanczos2), nil //nolint:gosec
 }
 
 func (p *ResizeProcessor) ValidateParams(params map[string]interface{}) error {

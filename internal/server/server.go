@@ -48,6 +48,7 @@ func StartServer() {
 	})
 	if err != nil {
 		logger.Error("failed to connect to nats", "error", err)
+		_ = jobStore.Close()
 		os.Exit(1)
 	}
 	defer q.Close()
@@ -106,7 +107,9 @@ func StartServer() {
 
 		if err := srv.Shutdown(shutCtx); err != nil {
 			logger.Error("graceful shutdown failed", "error", err)
-			srv.Close()
+			if err := srv.Close(); err != nil {
+				logger.Error("forced close failed", "error", err)
+			}
 		}
 		logger.Info("server stopped")
 	}

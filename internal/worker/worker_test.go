@@ -30,7 +30,7 @@ func newMockJobStore(j *job.Job) *mockJobStore {
 	return m
 }
 
-func (m *mockJobStore) Create(_ context.Context, j *job.Job) error   { return m.err }
+func (m *mockJobStore) Create(_ context.Context, _ *job.Job) error   { return m.err }
 func (m *mockJobStore) Get(_ context.Context, id string) (*job.Job, error) {
 	if m.err != nil {
 		return nil, m.err
@@ -41,7 +41,7 @@ func (m *mockJobStore) Get(_ context.Context, id string) (*job.Job, error) {
 	}
 	return j, nil
 }
-func (m *mockJobStore) Update(_ context.Context, j *job.Job) error { return m.err }
+func (m *mockJobStore) Update(_ context.Context, _ *job.Job) error { return m.err }
 func (m *mockJobStore) UpdateStatus(_ context.Context, id string, status job.Status, _ *job.Result, _ string) error {
 	if m.err != nil {
 		return m.err
